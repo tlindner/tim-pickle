@@ -1,0 +1,50 @@
+/* dmk.pk - David M. Keil disk image format.  */
+
+/* Copyright (C) 2023 by tim lindner */
+
+/* This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+set_endian(ENDIAN_LITTLE);
+
+type Dmk =
+  struct
+  {
+    byte write_protect;
+    byte track_count;
+    uint<16> track_length;
+    uint<1> ignore_density;
+    uint<1> single_density;
+    uint<1>;
+    uint<1> single_side;
+    uint<4>;
+    byte[7];
+    byte[4] native_format;
+
+    type DMK_IDAM_Pointer =
+      struct
+      {
+        uint<1> double_density;
+        uint<1>;
+        uint<14> offset;
+      };
+
+    type DMK_Track =
+      struct
+      {
+        DMK_IDAM_Pointer[128] pointers;
+        byte[track_length-256] data;
+      };
+
+    DMK_Track[track_count] tracks;
+  };
