@@ -15,9 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * Based on http://cpmarchives.classiccmp.org/trs80/mirrors/trs-80.com/early/www.trs-80.com/trs80-dm.htm
+*/
+
 set_endian(ENDIAN_LITTLE);
 
-type Dmk =
+type DMK_Header =
   struct
   {
     byte write_protect;
@@ -30,21 +34,51 @@ type Dmk =
     uint<4>;
     byte[7];
     byte[4] native_format;
+  };
+
+type DMK =
+  struct
+  {
+    DMK_Header header;
 
     type DMK_IDAM_Pointer =
       struct
       {
+        uint<8> offset_lo;
         uint<1> double_density;
         uint<1>;
-        uint<14> offset;
+        uint<6> offset_hi;
+
+        method get_offset = uint<14>:
+        {
+          return offset_hi ::: offset_lo;
+        }
+        method set_offset = (uint<14> c) void:
+        {
+          offset_hi = c .>> 8;
+          offset_lo = c;
+        }
+        method _print = void:
+        {
+          if (get_offset() != 0)
+          {
+            printf "%u14x%s", get_offset(), double_density ? "" : "_S";
+          }
+        }
       };
 
     type DMK_Track =
       struct
       {
-        DMK_IDAM_Pointer[128] pointers;
-        byte[track_length-256] data;
+        DMK_IDAM_Pointer[64] pointers;
+        byte[header.track_length-128] data;
+
+        method _print = void:
+        {
+          printf "%v", pointers;
+          print "\n";
+        }
       };
 
-    DMK_Track[track_count] tracks;
+    DMK_Track[header.track_count] tracks;
   };
