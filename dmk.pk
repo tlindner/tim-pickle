@@ -19,6 +19,18 @@
  * Based on http://cpmarchives.classiccmp.org/trs80/mirrors/trs-80.com/early/www.trs-80.com/trs80-dm.htm
 */
 
+set_endian(ENDIAN_BIG);
+
+type DMK_Idam =
+  struct
+  {
+    uint<8> track;
+    uint<8> side;
+    uint<8> sector;
+    uint<8> size;
+    uint<16> crc;
+  };
+
 set_endian(ENDIAN_LITTLE);
 
 type DMK_Header =
@@ -26,7 +38,7 @@ type DMK_Header =
   {
     byte write_protect;
     byte track_count;
-    uint<16> track_length;
+    offset<uint<16>,B> track_length;
     uint<1> ignore_density;
     uint<1> single_density;
     uint<1>;
@@ -62,7 +74,7 @@ type DMK =
         {
           if (get_offset() != 0)
           {
-            printf "%u14x%s", get_offset(), double_density ? "" : "_S";
+            printf "#<%u14x%s>", get_offset(), double_density ? "" : "_S";
           }
         }
       };
@@ -70,15 +82,22 @@ type DMK =
     type DMK_Track =
       struct
       {
-        DMK_IDAM_Pointer[64] pointers;
-        byte[header.track_length-128] data;
+        var data_offset = OFFSET;
+        DMK_IDAM_Pointer[64] pointer;
+        byte[0] @ OFFSET + header.track_length - 128#B;
 
         method _print = void:
         {
-          printf "%v", pointers;
+          printf "%v", pointer;
           print "\n";
+        }
+
+        method get_idam_by_index = (uint<6> index) DMK_Idam:
+        {
+          return DMK_Idam @ pointer'ios : pointer'offset + data_offset + pointer[index].get_offset()#B + 1#B;
         }
       };
 
-    DMK_Track[header.track_count] tracks;
+    DMK_Track[header.track_count] track;
+
   };
