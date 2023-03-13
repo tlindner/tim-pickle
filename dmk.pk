@@ -80,7 +80,7 @@ type DMK =
 
         method get_idam_by_index = (uint<6> index) DMK_Idam:
         {
-          return DMK_Idam @ pointer'ios : pointer'offset + data_offset + pointer[index].pointer.idam_offset + 1#B;
+          return DMK_Idam @ pointer'ios : SELF'offset + data_offset + pointer[index].pointer.idam_offset + 1#B;
         }
       };
 
