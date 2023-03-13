@@ -19,8 +19,6 @@
  * Based on http://cpmarchives.classiccmp.org/trs80/mirrors/trs-80.com/early/www.trs-80.com/trs80-dm.htm
 */
 
-set_endian(ENDIAN_BIG);
-
 type DMK_Idam =
   struct
   {
@@ -28,17 +26,15 @@ type DMK_Idam =
     uint<8> side;
     uint<8> sector;
     uint<8> size;
-    uint<16> crc;
+    big uint<16> crc;
   };
-
-set_endian(ENDIAN_LITTLE);
 
 type DMK_Header =
   struct
   {
     byte write_protect;
     byte track_count;
-    offset<uint<16>,B> track_length;
+    little offset<uint<16>,B> track_length;
     uint<1> ignore_density;
     uint<1> single_density;
     uint<1>;
@@ -56,26 +52,16 @@ type DMK =
     type DMK_IDAM_Pointer =
       struct
       {
-        uint<8> offset_lo;
-        uint<1> double_density;
-        uint<1>;
-        uint<6> offset_hi;
+        little struct uint<16>
+        {
+          uint<1> double_density;
+          uint<1>;
+          offset<uint<14>,B> idam_offset;
+        } pointer;
 
-        method get_offset = uint<14>:
-        {
-          return offset_hi ::: offset_lo;
-        }
-        method set_offset = (uint<14> c) void:
-        {
-          offset_hi = c .>> 8;
-          offset_lo = c;
-        }
         method _print = void:
         {
-          if (get_offset() != 0)
-          {
-            printf "#<%u14x%s>", get_offset(), double_density ? "" : "_S";
-          }
+          printf "#<%u14x%s>", pointer.idam_offset'magnitude, pointer.double_density ? "" : "_S";
         }
       };
 
@@ -88,13 +74,13 @@ type DMK =
 
         method _print = void:
         {
-          printf "%v", pointer;
+          for (i in pointer where i.pointer.idam_offset != 0#B ) printf " %v", i;
           print "\n";
         }
 
         method get_idam_by_index = (uint<6> index) DMK_Idam:
         {
-          return DMK_Idam @ pointer'ios : pointer'offset + data_offset + pointer[index].get_offset()#B + 1#B;
+          return DMK_Idam @ pointer'ios : pointer'offset + data_offset + pointer[index].pointer.idam_offset + 1#B;
         }
       };
 
